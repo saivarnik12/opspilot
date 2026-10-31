@@ -7,5 +7,6 @@ COPY app ./app
 RUN useradd -m appuser
 USER appuser
 EXPOSE 8000
-HEALTHCHECK CMD python -c "import urllib.request as u; u.urlopen('http://localhost:8000/health')" || exit 1
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK CMD python -c "import os, urllib.request as u; u.urlopen('http://localhost:%s/health' % os.environ.get('PORT', '8000'))" || exit 1
+# Honors the platform-provided PORT (Render, Railway, Fly, Cloud Run...); defaults to 8000 locally.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -33,7 +33,10 @@ class ApiKey(Base):
 
 class LogEntry(Base):
     __tablename__ = "log_entries"
-    __table_args__ = (Index("ix_logs_user_source_level", "user_id", "source", "level"),)
+    __table_args__ = (
+        Index("ix_logs_user_source_level", "user_id", "source", "level"),
+        Index("ix_logs_user_timestamp", "user_id", "timestamp"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)

@@ -34,6 +34,16 @@ pytest -v                      # API tests
 
 ## Dashboard
 
+<p align="center"><img src="docs/screenshots/dashboard-dark.png" alt="OpsPilot dashboard, dark theme" width="880"></p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard-light.png" alt="Light theme" width="430">
+  <img src="docs/screenshots/incident-detail.png" alt="Incident with root cause and recommended fixes" width="430">
+</p>
+<p align="center"><img src="docs/screenshots/dashboard-mobile.png" alt="Mobile layout" width="260"></p>
+
+*Screenshots use generated demo data.*
+
 Open http://localhost:8000, create an account, then:
 
 - **Dashboard**: totals, error counts, and a chart of logs and errors over time (1h to 7d)
@@ -41,8 +51,9 @@ Open http://localhost:8000, create an account, then:
 - **Incidents**: detected error patterns, one-click analysis, root cause and recommended fixes, resolve/reopen
 - **API keys**: create (shown once), copy, revoke
 
-It is a dependency-free single page served by the API itself (no build step), responsive,
-and follows the system light/dark theme. All log content is rendered as plain text, never HTML,
+It is a dependency-free single page served by the API itself (no build step). Dark "observability"
+theme by default with a light "minimal" theme one click away (your choice is remembered); fully responsive
+(checked at 360, 390, 768, 1024 and 1440 px). All log content is rendered as plain text, never HTML,
 so hostile log lines cannot inject scripts (covered by an automated test).
 
 ## Usage

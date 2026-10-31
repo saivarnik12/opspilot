@@ -34,7 +34,7 @@ function submit(win, form) { form.dispatchEvent(new win.Event('submit', { bubble
   await seed();
   const html = await (await fetch(B + '/app/')).text();
   const dom = new JSDOM(html, {
-    url: B + '/app/', runScripts: 'dangerously', pretendToBeVisual: true,
+    url: B + '/app/', runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true,
     beforeParse(win) {
       win.fetch = (u, o) => fetch(new URL(u, win.location.href), o);
       win.confirm = () => true;
@@ -66,6 +66,24 @@ function submit(win, form) { form.dispatchEvent(new win.Event('submit', { bubble
     check('dashboard: chart rendered with bars', win.document.querySelectorAll('svg.chart rect').length >= 2);
     await waitFor(win, () => text(win, '#who') === EMAIL, 'user email in header');
     check('header shows signed-in email', true);
+
+    // redesign: layout, theme, health, new panels
+    check('sidebar has 4 nav links', win.document.querySelectorAll('.side-nav a').length === 4);
+    check('dashboard nav link is active', text(win, '.side-nav a.active').trim() === 'Dashboard');
+    await waitFor(win, () => text(win, '#health-text') === 'API online', 'health indicator');
+    check('health indicator shows API online', $(win, '#health-dot').classList.contains('up'));
+    const mainText = text(win, 'main');
+    check('dashboard: logs-by-level panel lists INFO, ERROR, CRITICAL', ['INFO', 'ERROR', 'CRITICAL'].every(l => mainText.includes(l)));
+    check('dashboard: top sources panel lists api-1', mainText.includes('Top sources') && mainText.includes('api-1'));
+    check('dashboard: error rate shown (5 of 35 = 14.3%)', /14\.3% of all logs/.test(text(win, '#stats')), text(win, '#stats'));
+    const root = win.document.documentElement;
+    check('theme: dark by default', root.getAttribute('data-theme') === 'dark');
+    click(win, $(win, '#theme-toggle'));
+    check('theme: toggle -> light', root.getAttribute('data-theme') === 'light' && win.localStorage.getItem('opspilot_theme') === 'light');
+    check('theme: chart still rendered after toggle', win.document.querySelectorAll('svg.chart rect').length >= 2);
+    click(win, $(win, '#theme-toggle'));
+    check('theme: toggle -> dark again', root.getAttribute('data-theme') === 'dark' && win.localStorage.getItem('opspilot_theme') === 'dark');
+    check('no inline style attributes anywhere in the live DOM', win.document.querySelectorAll('[style]').length === 0);
 
     // XSS safety on dashboard "latest errors" and in logs explorer
     win.location.hash = '#/logs';
@@ -137,6 +155,14 @@ function submit(win, form) { form.dispatchEvent(new win.Event('submit', { bubble
     console.log('FAIL (exception) ' + e.message); failures++;
     console.log('--- body ---\n' + win.document.body.textContent.slice(0, 600));
   }
+  // saved light theme is applied on load (no flash): theme.js runs before first paint
+  try {
+    const dom2 = new JSDOM(html, { url: B + '/app/', runScripts: 'dangerously', resources: 'usable',
+      beforeParse(w) { w.localStorage.setItem('opspilot_theme', 'light'); w.fetch = (u, o) => fetch(new URL(u, w.location.href), o); } });
+    await waitFor(dom2.window, () => dom2.window.document.querySelector('#auth-submit'), 'second window login');
+    check('theme: saved light preference applied on load', dom2.window.document.documentElement.getAttribute('data-theme') === 'light');
+    dom2.window.close();
+  } catch (e) { console.log('FAIL (exception) ' + e.message); failures++; }
   check('no uncaught JS errors in page', errors.length === 0, errors.join('|'));
   console.log(failures === 0 ? '\nALL UI CHECKS PASSED' : `\n${failures} UI CHECK(S) FAILED`);
   process.exit(failures ? 1 : 0);

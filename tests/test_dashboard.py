@@ -68,4 +68,24 @@ def test_dashboard_is_served(client):
     assert r.status_code in (302, 307) and r.headers["location"] == "/app/"
     page = client.get("/app/")
     assert page.status_code == 200 and "OpsPilot" in page.text
-    assert "innerHTML" not in page.text  # guard: UI must never inject untrusted HTML
+    for asset in ("styles.css", "app.js", "theme.js", "favicon.svg"):
+        assert client.get(f"/app/{asset}").status_code == 200, asset
+
+
+def test_dashboard_never_injects_untrusted_html_or_inline_styles(client):
+    """Guards for XSS safety and for a strict Content-Security-Policy later."""
+    app_js = client.get("/app/app.js").text
+    page = client.get("/app/").text
+    assert "innerHTML" not in app_js and "outerHTML" not in app_js
+    assert "insertAdjacentHTML" not in app_js and "document.write" not in app_js
+    assert "style=" not in page and "setAttribute('style'" not in app_js
+    assert "eval(" not in app_js
+
+
+def test_logs_are_ordered_by_event_time_not_arrival_order(client, auth):
+    now = datetime.now(timezone.utc)
+    post(client, auth, "newest", ts=now)
+    post(client, auth, "backfilled-old", ts=now - timedelta(hours=5))  # arrives last, happened first
+    post(client, auth, "middle", ts=now - timedelta(hours=1))
+    messages = [x["message"] for x in client.get("/api/v1/logs", headers=auth).json()]
+    assert messages == ["newest", "middle", "backfilled-old"]

@@ -61,7 +61,7 @@ def list_logs(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List logs, newest first. The total number of matches is in the X-Total-Count header."""
+    """List logs, newest event first (by log timestamp, so late-arriving logs sort correctly). The total number of matches is in the X-Total-Count header."""
     conditions = [LogEntry.user_id == user.id]
     if level:
         conditions.append(LogEntry.level == level.value)
@@ -72,7 +72,7 @@ def list_logs(
     response.headers["X-Total-Count"] = str(
         db.scalar(select(func.count(LogEntry.id)).where(*conditions)) or 0
     )
-    stmt = select(LogEntry).where(*conditions).order_by(LogEntry.id.desc())
+    stmt = select(LogEntry).where(*conditions).order_by(LogEntry.timestamp.desc(), LogEntry.id.desc())
     return db.scalars(stmt.limit(limit).offset(offset)).all()
 
 

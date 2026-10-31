@@ -1,0 +1,7 @@
+{
+  "name": "opspilot-e2e",
+  "private": true,
+  "description": "Browser-level checks of the OpsPilot dashboard (jsdom against a running server)",
+  "scripts": { "test": "node dashboard.e2e.js" },
+  "devDependencies": { "jsdom": "24.1.3" }
+}
